@@ -168,10 +168,11 @@ I suggest reading the first set of notes and then the second set.
 
 \begin{frame}\frametitle{Self-paced exercises}
 
-You can do short auto-graded exercises each day on the datacamp course page:
+You can do short auto-graded exercises each day on the datacamp course page.
 
-https://www.datacamp.com/courses/statistical-methods-for-linguistic-research-foundational-ideas
+Please sign up as a ``team'' member so that we can get some statistics on course participation and completion (we won't track individual identities). Sign up here:
 
+http://bit.ly/1MHfVgw
 
 \end{frame}
 
