@@ -515,7 +515,7 @@ stddev<-sd(sample)
 \begin{frame}[fragile]\frametitle{The typical statistical test}
 \framesubtitle{t-test}
 
-We can also compute the probability of getting a sample mean like $\bar{x}$ or something more extreme given the null hypothesis.
+We can also compute the probability of getting a t-value like the one we got from the sample, or something more extreme, given the null hypothesis.
 
 This can be computed, as done earlier, simply by calculating the area under the curve in the rejection region for the relevant t-distribution:
 
@@ -529,7 +529,7 @@ pt(-abs(t_value),df=n-1)
 \framesubtitle{t-test}
 
 
-I just took the absolute t-value from the sample and took it's negation in order to compute the probability on the left tail. I could have also written:
+I just took the absolute t-value from the sample and took its negation in order to compute the probability on the left tail. I could have also written:
 
 <<>>=
 pt(abs(t_value),df=n-1,lower.tail=FALSE)
@@ -541,7 +541,7 @@ pt(abs(t_value),df=n-1,lower.tail=FALSE)
 \begin{frame}[fragile]\frametitle{The typical statistical test}
 \framesubtitle{t-test}
 
-The convention is to compute the probability of getting a mean like $\pm \bar{x}$ or something more extreme --- we look at both sides of the t-distribution.
+The convention is to compute the probability of getting a t-value like the one we got or something more extreme --- we look at both sides of the t-distribution.
 
 <<>>=
 2*pt(-abs(t_value),df=n-1)
@@ -583,6 +583,8 @@ The p-value is widely misunderstood, even by veteran scientists.
 
 Here are some things people \textbf{incorrectly} think is true of p-values:
 
+\medskip
+
 \textbf{Mistake}: A lower p-value gives me more confidence in the specific alternative hypothesis I am interested in verifying.
 
 In fact, a lower p-value only gives me stronger evidence against the null; it doesn't necessarily give me any more evidence than p=0.05 for my \textbf{specific} favored alternative. 
@@ -610,7 +612,7 @@ The only currency we will recognize is replicability.
 
 \textbf{Mistake}: It is widely believed that the p-value is the probability of the null hypothesis being true.
 
-The p-value is a \textbf{conditional} probability: the probability of seeing a sample mean that you got, or something more extreme, assuming the null is true.
+The p-value is a \textbf{conditional} probability: the probability of seeing the t-value that you got, or something more extreme, assuming the null is true.
 
 An analogy: If you know that the probability of the streets being wet given that it is raining is 0.99, it does not mean that the probability that it's raining is 0.99.
 
