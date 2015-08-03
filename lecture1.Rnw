@@ -170,7 +170,7 @@ I suggest reading the first set of notes and then the second set.
 
 You can do short auto-graded exercises each day on the datacamp course page:
 
-datacamp.com/todo
+https://www.datacamp.com/courses/statistical-methods-for-linguistic-research-foundational-ideas
 
 
 \end{frame}
@@ -432,7 +432,7 @@ axis(1,at=1:11,labels=0:10)
 To summarize, a discrete random variable X will be defined by
 
 \begin{enumerate}
-\item the function $X: S\rightarrow \mathbb{R}$, where S is the set of outcomes (i.e., outcomes are $\omega in S$).
+\item the function $X: S\rightarrow \mathbb{R}$, where S is the set of outcomes (i.e., outcomes are $\omega \in S$).
 \item $X(\omega) = x$, and $S_X$ is the \textbf{support} of X (i.e., $x\in S_X$).
 \item A PMF is defined for X:
 \begin{equation*}
@@ -567,7 +567,7 @@ This will turn out to be very useful in statistical inference.
 
 \begin{frame}\frametitle{Standard or unit normal random variable} 
 
-If $X$ is normally distributed with parameters $\mu$ and $\sigma^2$, then $Z=(X-\mu)/\sigma$ is normally distributed with parameters $\mu=0,\sigma = 1$.
+If $X$ is normally distributed with parameters $\mu$ and $\sigma$, then $Z=(X-\mu)/\sigma$ is normally distributed with parameters $\mu=0,\sigma = 1$.
 
 We conventionally write $\Phi (x)$ for the CDF of N(0,1):
 
@@ -619,7 +619,7 @@ If $Z$ is a standard normal random variable (SNRV) then
 p\{ Z\leq -x\} = P\{Z>x\}, \quad -\infty < x < \infty
 \end{equation}
 
-Since $Z=((X-\mu)/\sigma)$ is an SNRV whenever $X$ is normally distributed with parameters $\mu$ and $\sigma^2$, then the CDF of $X$ can be expressed as:
+Since $Z=((X-\mu)/\sigma)$ is an SNRV whenever $X$ is normally distributed with parameters $\mu$ and $\sigma$, then the CDF of $X$ can be expressed as:
 
 \begin{equation}
 F_X(a) = P\{ X\leq a \} = P\left( \frac{X - \mu}{\sigma} \leq \frac{a - \mu}{\sigma}\right) = \Phi\left( \frac{a - \mu}{\sigma} \right)
@@ -677,17 +677,18 @@ Suppose we toss a fair coin 10 times, and count the number of heads each time; w
 
 The joint probability of getting all these values (assuming independence) depends on the parameter we set for the probability $\theta$:
 
-\begin{equation}
-P(X_1=x_1,X_2=x_2,\dots,X_n=x_n) = f(X_1=x_1,X_2=x_2,\dots,X_n=x_n;\theta)  
-\end{equation} 
+$P(X_1=x_1,X_2=x_2,\dots,X_n=x_n)$ 
+
+$=f(X_1=x_1,X_2=x_2,\dots,X_n=x_n;\theta)$  
+
 
 \end{frame}
 
 \begin{frame}[fragile]\frametitle{MLE: The binomial distribution}
 
-\begin{equation}
-P(X_1=x_1,X_2=x_2,\dots,X_n=x_n) = f(X_1=x_1,X_2=x_2,\dots,X_n=x_n;\theta)  
-\end{equation} 
+$P(X_1=x_1,X_2=x_2,\dots,X_n=x_n)$ 
+
+$= f(X_1=x_1,X_2=x_2,\dots,X_n=x_n;\theta)$
 
 So, the above probability is a function of $\theta$. 
 When this quantity is expressed as a function of $\theta$, we call it the \textbf{likelihood function}.
@@ -743,6 +744,10 @@ We can obtain this estimate of $\theta$ that maximizes likelihood by computing:
 
 where $n$ is sample size, and $x$ is the number of successes.
 
+\medskip
+For the analytical derivation, see the Linear Modeling lecture notes:
+https://github.com/vasishth/LM
+
 \end{frame}
 
 \subsection{The normal distribution}
@@ -762,7 +767,7 @@ and
 	\hat \sigma ^2 = \frac{1}{n}\sum (x_i-\bar{x})^2
 \end{equation}
 
-an unbiased estimate of the latter is:
+you will sometimes see the ``unbiased'' estimate (and this is what R computes) but for large sample sizes the difference is not important:
 
 \begin{equation}
   \hat \sigma ^2 = \frac{1}{n-1}\sum (x_i-\bar{x})^2
@@ -894,6 +899,8 @@ x<-rnorm(100,mean=500,sd=100)
 hat_sigma<-sd(x)
 hat_sigma/sqrt(n)
 @
+
+See linear modeling notes on github for an analytical proof.
 
 \end{frame}
 
@@ -1056,7 +1063,10 @@ For this reason, the CI is often treated (this is technically incorrect!) as a w
 \begin{frame}\frametitle{Main points from this lecture}
 
 \begin{enumerate}
-\item We compute Maximum likelihood estimates of the mean $\hat\mu$ and standard deviation $\hat\sigma$ to get estimates of the true but unknown parameters.
+\item We compute maximum likelihood estimates of the mean $\bar{x}=\hat\mu$ and standard deviation $\hat\sigma$ to get estimates of the true but unknown parameters.
+
+$\bar{x} = \frac{\sum_{i=1}^n x_i}{n}$
+
 \item For a given sample, having estimated $\hat\sigma$, we estimate the standard error:
 
 $SE=\hat\sigma/\sqrt{n}$
