@@ -1,0 +1,829 @@
+\documentclass[compress,red]{beamer}
+%\documentclass[handout]{beamer}
+
+%\usepackage{beamerthemesplit}
+\usepackage{fancyvrb}
+\usepackage{graphicx}
+\usepackage{gb4e}
+\usepackage{qtree}
+\usepackage{hyperref}
+\usepackage{ulem}
+
+\usepackage{amsmath,amssymb,amsfonts}
+
+\setbeamerfont{page number in head/foot}{size=\large}
+\setbeamertemplate{footline}[frame number]
+
+%\setbeamertemplate{footline}%
+%{%
+%\hfill\insertpagenumber\ of \ref{TotPages}\hspace{.5cm}\vspace{.5cm}
+%\hfill\insertpagenumber\ of 28\hspace{.5cm}\vspace{.5cm}
+%}%
+
+
+
+\mode<presentation>
+{
+%\usetheme{Singapore}
+%\usetheme{Berlin}
+
+%\setbeamercovered{transparent}
+
+}
+
+
+%\mode<handout>
+%{
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{4 on 1}[a4paper,landscape,border shrink=5mm]
+%}
+
+
+\usetheme{Antibes}
+%\usecolortheme{beetle}
+%\usecolortheme{seagull}
+\usecolortheme{lily}
+
+\title[Lecture 4]{Statistical methods for linguistic research: Foundational Ideas}
+
+\author{Shravan Vasishth}
+
+\institute{Universit\"at Potsdam\\
+vasishth@uni-potsdam.de\\
+http://www.ling.uni-potsdam.de/$\sim$vasishth
+}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+
+
+<<setup,include=FALSE,cache=FALSE>>=
+library(knitr)
+library(coda)
+
+# set global chunk options, put figures into folder
+options(replace.assign=TRUE,show.signif.stars=FALSE)
+opts_chunk$set(fig.path='figures/figure-', fig.align='center', fig.show='hold')
+options(replace.assign=TRUE,width=75)
+opts_chunk$set(dev='postscript')
+#library(rstan)
+#set.seed(9991)
+# save workspace image, if you want
+#the.date <- format(Sys.time(), "%b%d%Y")
+#save.image(file=paste0("homework01-",the.date,".RData")
+@
+
+
+
+\section{The story so far}
+
+\begin{frame}[fragile]\frametitle{Summary}
+\begin{enumerate}
+\item We know how to do simple t-tests.
+\item We know how to fit simple linear models.
+\end{enumerate}
+
+Now we are ready to look at an important type of linear model: linear mixed models.
+
+\end{frame}
+
+
+\section{Linear mixed models}
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+Returning to our noise and deg data, one important point we've neglected is that different subjects have different effects of noise and deg. In the linear models we fit we were ignoring this.
+
+
+<<>>=
+noisedeg<-read.table("data/noisedeg.txt",
+                     header=TRUE)
+
+means.noise<-with(noisedeg,tapply(rt,list(subj,noise),
+                                  mean))
+means.deg<-with(noisedeg,tapply(rt,list(subj,
+                                        deg),mean))
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+We can visualize the different responses of subjects:
+
+<<echo=FALSE,fig.height=4>>=
+## We can visualize these differences graphically:
+library(lattice)
+
+## noise by subject (data points):
+print(xyplot(rt~noise|subj,
+        panel=function(x,y,...){panel.xyplot(x,y,type="r")},noisedeg))
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+We can do the same for degree:
+
+<<echo=FALSE,fig.height=4>>=
+## same as above, but for deg:
+print(xyplot(rt~deg|subj,
+        panel=function(x,y,...){panel.xyplot(x,y,type="r")},noisedeg))
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+Given these differences between subjects, you could fit a separate linear model for each subject, collect together the intercepts and slopes for each subject, and then check if the intercepts and slopes are significantly different from zero.
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+Fit a separate model for one subject (s1):
+
+<<>>=
+## fit a separate linear model for subject s1:
+s1data<-subset(noisedeg,subj=="s1")
+m<-lm(rt~noise,s1data)
+round(summary(m)$coefficients,digits=2)
+@
+
+Look at the means for s1 for noise and compare them to the coefficients above.
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+Now we can do this for every one of our 10 subjects. I don't print this result out for space reasons.
+
+<<>>=
+## do the same for each subject using a for-loop
+subjects<-paste("s",rep(1:10),sep="")
+for(i in subjects){
+  sdata<-subset(noisedeg,subj==i)
+        lm(rt~noise,sdata)
+}
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+There is a function in the package \texttt{lme4} that does the above for you: \texttt{lmList}.
+
+<<>>=
+## do the same as the above for-loop for each subject:
+library(lme4)
+
+lmlist.fm1<-lmList(rt~noise|subj,noisedeg)
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+<<>>=
+print(lmlist.fm1$s1)
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+One can plot the individual lines for each subject, as well as the linear model m0's line (this shows how each subject deviates in intercept and slope from the model m0's intercept and slopes).
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+<<echo=FALSE,fig.height=4>>=
+plot(as.numeric(noisedeg$noise)-1,
+     noisedeg$rt,axes=F,
+     xlab="noise",ylab="rt")
+axis(1,at=c(0,1),
+     labels=c("no.noise","noise"))
+axis(2)
+
+subjects<-paste("s",1:10,sep="")
+
+for(i in subjects){
+abline(lmlist.fm1[[i]])
+}
+
+abline(lm(rt~noise,noisedeg),lwd=3,col="red")
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+To find out if there is an effect of noise, you can simply check whether the slopes of the individual subjects' fitted lines taken together are significantly different from zero.
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+<<>>=
+t.test(coef(lmlist.fm1)[2])
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear models}
+
+The above is called \textbf{repeated measures regression}. We now transition to the next stage of multiple regression: the linear mixed model.
+
+\end{frame}
+
+
+\subsection{Varying intercepts models}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+The \textbf{linear mixed model} does something related to the above by-subject fits, but with some crucial twists, as we see below. 
+
+In the model shown in the next slide,  
+the statement 
+
+(1$\mid$subj) 
+
+means that the variance associated with subject intercepts should be estimated, and from that variance the intercepts for each subject should be predicted. 
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<>>=
+m0.lmer<-lmer(rt~noise+(1|subj),noisedeg)
+@
+
+Abbreviated output:
+
+\begin{verbatim}
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ subj     (Intercept) 2491     49.91   
+ Residual             8876     94.21   
+Number of obs: 40, groups:  subj, 10
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   486.00      26.32  18.463
+noisenoise     90.00      29.79   3.021
+\end{verbatim}
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+One thing to notice is that the coefficients of the fixed effects of the above model are identical to those in the linear model m0 above. 
+
+The \textbf{predicted} (not estimated!) varying intercepts for each subject can be viewed by typing:
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<>>=
+ranef(m0.lmer)
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+Or you can display them graphically.
+
+<<fig.height=3>>=
+print(dotplot(ranef(m0.lmer,condVar=TRUE)))
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+The model m0.lmer above prints out the following type of linear model:
+
+\begin{equation}
+Y_{ijk} = \beta_j + b_{i}+\epsilon_{ijk}
+\end{equation}
+
+$i=1,\dots,10$ is subject id, $j=1,2$ is the factor level (no noise or noise), $k$ is the number of replicates (here 1).
+$b_i \sim N(0,\sigma_b^2), \epsilon_{ijk}\sim N(0,\sigma^2)$.
+
+It's just like our linear model except that there are different \textit{predicted} (cf.\ the lmlist function above, where they are \textit{estimated} for each subject) intercepts $b_i$ for each subject. 
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+Note that these $b_i$ are assumed by lmer to come from a normal distribution centered around 0; see 
+Gelman and Hill 2007 for more. 
+
+The ordinary linear model m0 has one intercept $\beta_0$ for all subjects, whereas the linear mixed model with varying intercepts m0.lmer has a different intercept ($\beta_0 + b_i$) for each subject.
+
+We can visualize these different intercepts for each subject as shown below.
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<echo=FALSE,fig.height=4>>=
+(a<-fixef(m0.lmer)[1])
+(newa<-a+ranef(m0.lmer)$subj)
+
+ab<-data.frame(newa=newa,b=fixef(m0.lmer)[2])
+
+plot(as.numeric(noisedeg$noise)-1,noisedeg$rt,xlab="noise",ylab="rt",axes=F)
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+for(i in 1:10){
+abline(a=ab[i,1],b=ab[i,2])
+}
+
+abline(lm(rt~noise,noisedeg),lwd=3,col="red")
+@
+
+\end{frame}
+
+\subsection{Varying intercepts and slopes model}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+Note that, unlike the figure associated with the lmlist.fm1 model above, which also involves fitting separate models for each subject, the model m0.lmer assumes different intercepts for each subject \textbf{but the same slope}. 
+
+We can have lmer fit different intercepts AND slopes for each subject.
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<>>=
+m1.lmer<-lmer(rt~noise+(1+noise|subj),noisedeg)
+@
+
+\begin{verbatim}
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr
+ subj     (Intercept) 1093     33.05        
+          noisenoise  1408     37.52    1.00
+ Residual             8359     91.43        
+Number of obs: 40, groups:  subj, 10
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   486.00      22.96   21.17
+noisenoise     90.00      31.25    2.88
+
+\end{verbatim}
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+These fits for each subject are visualized below (the red line shows the model with a single intercept and slope, i.e., our old model m0):
+
+<<echo=FALSE,fig.height=4>>=
+a<-fixef(m1.lmer)[1]
+b<-fixef(m1.lmer)[2]
+
+newa<-a+ranef(m1.lmer)$subj[1]
+newb<-b+ranef(m1.lmer)$subj[2]
+
+ab<-data.frame(newa=newa,b=newb)
+
+plot(as.numeric(noisedeg$noise)-1,noisedeg$rt,xlab="noise",ylab="rt",axes=F,
+main="varying intercepts and slopes for each subject")
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+for(i in 1:10){
+abline(a=ab[i,1],b=ab[i,2])
+}
+
+abline(lm(rt~noise,noisedeg),lwd=3,col="red")
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+Compare this model with the lmlist.fm1 model we fitted earlier:
+
+<<echo=FALSE,fig.height=4>>=
+op<-par(mfrow=c(1,2),pty="s")
+
+plot(as.numeric(noisedeg$noise)-1,noisedeg$rt,axes=F,xlab="noise",ylab="rt",main="ordinary linear model")
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+subjects<-paste("s",1:10,sep="")
+
+for(i in subjects){
+abline(lmlist.fm1[[i]])
+}
+
+abline(lm(rt~noise,noisedeg),lwd=3,col="red")
+
+a<-fixef(m1.lmer)[1]
+b<-fixef(m1.lmer)[2]
+
+newa<-a+ranef(m1.lmer)$subj[1]
+newb<-b+ranef(m1.lmer)$subj[2]
+
+ab<-data.frame(newa=newa,b=newb)
+
+plot(as.numeric(noisedeg$noise)-1,noisedeg$rt,axes=F,
+main="varying intercepts and slopes",xlab="noise",ylab="rt")
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+for(i in 1:10){
+abline(a=ab[i,1],b=ab[i,2])
+}
+
+abline(lm(rt~noise,noisedeg),lwd=3,col="red")
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+\tiny
+
+\begin{enumerate}
+\item
+The above graphic shows some crucial difference between the lmlist (repeated measures) model and the lmer model. \item
+Note that the fitted line for each subject in the lmer model is much closer to the m0 model's fitted (red) line. 
+\item 
+This is because lmlist uses each subject's data separately (resulting in possibly wildly different models, depending on the variability between subjects), whereas lmer ``borrows strength from the mean'' and pushes (or ``shrinks'') the estimated intercepts and slopes of each subject closer to the mean intercepts and slopes (the model m0's intercepts and slopes). 
+\item
+Because it shrinks the coefficients towards the means, this is called shrinkage. This is particularly useful when several data points are missing in a particular condition for a particular subject: in an ordinary linear model, estimating coefficients using lmList would lead to very poor estimates for that subject; by contrast, lmer assumes that the estimates for such a subject are not reliable and therefore shrinks that subject's estimate to the mean values.
+\end{enumerate}
+
+\end{frame}
+
+\subsection{Shrinkage}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+To see an example of shrinkage, consider the case where we remove three of the data points from subject s8, resulting in exaggeratedly high means for that subject.
+
+First, we read in a data frame which is just the same as noisedeg, except that subject 8 (s8) has only three data points, not six (I took out three of s8's low measures). This skews the subject's estimates for intercept and slope in the lmlist model fit.
+
+\textbf{I am now using the full noisedeg dataset (this is a 2x3 design, with three levels of degree, 0, 4, 8).}
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<>>=
+noisedeg2<-read.table("data/noisedegfull.txt",header=T)
+@
+
+Next, let's confirm that the new data frame has extreme means for s8.
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+
+<<>>=
+with(noisedeg,tapply(rt,list(subj,noise),mean,na.rm=TRUE))
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<>>=
+with(noisedeg2,tapply(rt,list(subj,noise),mean,na.rm=TRUE))
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+We now fit the lmlist model and the linear mixed model.
+
+<<>>=
+lmlist.fm2<-lmList(rt~noise|subj,noisedeg2)
+
+m2.lmer<-lmer(rt~noise+(1+noise|subj),noisedeg2)
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+Now if we plot the model for s8, we find that the lmlist model indeed estimates \textbf{pretty extreme intercepts for s8}. 
+
+But the linear mixed model predicts an intercept that's \textbf{much closer to the mean} (the red line). Let's just plot s8's fitted line in both models relative to the linear model fitted line.
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<echo=FALSE,fig.height=4>>=
+op<-par(mfrow=c(1,2),pty="s")
+
+## reduced data:
+plot(as.numeric(noisedeg2$noise)-1,noisedeg2$rt,axes=F,xlab="noise",ylab="rt",main="ordinary linear model",sub="s8, missing data")
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+abline(lmlist.fm2$s8)
+
+abline(lm(rt~noise,noisedeg2),lwd=3,col="red")
+
+a<-fixef(m2.lmer)[1]
+b<-fixef(m2.lmer)[2]
+
+newa<-a+ranef(m2.lmer)$subj[1]
+newb<-b+ranef(m2.lmer)$subj[2]
+
+ab<-data.frame(newa=newa,b=newb)
+
+plot(as.numeric(noisedeg2$noise)-1,noisedeg2$rt,axes=F,
+main="varying intercepts and slopes",
+sub="s8, missing data",
+xlab="noise",ylab="rt")
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+
+abline(a=ab[9,1],b=ab[9,2])
+
+abline(lm(rt~noise,noisedeg2),lwd=3,col="red")
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+<<echo=FALSE,fig.height=4>>=
+## unreduced
+op<-par(mfrow=c(1,2),pty="s")
+
+plot(as.numeric(noisedeg$noise)-1,noisedeg$rt,axes=F,xlab="noise",ylab="rt",main="ordinary linear model",
+,sub="s8, no missing data")
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+abline(lmlist.fm1$s8)
+
+abline(lm(rt~noise,noisedeg),lwd=3,col="red")
+
+a<-fixef(m2.lmer)[1]
+b<-fixef(m2.lmer)[2]
+
+newa<-a+ranef(m1.lmer)$subj[1]
+newb<-b+ranef(m1.lmer)$subj[2]
+
+ab<-data.frame(newa=newa,b=newb)
+
+plot(as.numeric(noisedeg$noise)-1,noisedeg$rt,axes=F,
+main="varying intercepts and slopes",sub="s8, no missing data",xlab="noise",ylab="rt")
+axis(1,at=c(0,1),labels=c("no.noise","noise"))
+axis(2)
+
+abline(a=ab[9,1],b=ab[9,2])
+
+abline(lm(rt~noise,noisedeg),lwd=3,col="red")
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Linear mixed models}
+
+One crucial difference between the lmlist model and the lmer model is that \textbf{lmList estimates the parameters for each subject separately}.
+
+By contrast,
+\textbf{lmer estimates the variance associated with subjects' intercepts} (and slopes, if you specify in the model that one should do that) and then \textit{predicts} each subjects intercepts and slopes based on that variance. 
+
+I will formalize this on the last day if there is time.
+
+\end{frame}
+
+\section{A fully worked example}
+
+\begin{frame}[fragile]\frametitle{Gibson and Wu 2013}
+\framesubtitle{Processing {C}hinese relative clauses in context}
+
+Research question: Are subject relatives harder than object relatives in Chinese? 
+
+<<>>=
+data<-read.table("data/gibsonwu2012data.txt",header=TRUE)
+headnoun<-subset(data,region=="headnoun")
+head(headnoun[,c(1,2,3,7)])
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Gibson and Wu 2013}
+\framesubtitle{Processing {C}hinese relative clauses in context}
+
+Published result was approximately the following (statistically significant):
+
+<<>>=
+contrasts(data$type)<-contr.sum(2)
+contrasts(data$type)
+@
+
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Gibson and Wu 2013}
+\framesubtitle{Processing {C}hinese relative clauses in context}
+
+<<>>=
+m0<-lmer(rt~type+(1+type|subj)+(1|item),headnoun)
+summary(m0)$coefficients
+@
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Gibson and Wu 2013}
+\framesubtitle{Processing {C}hinese relative clauses in context}
+
+Result is driven by 1\% of extreme values:
+
+<<echo=FALSE,fig.height=4>>=
+boxplot(rt~type,headnoun)
+@
+
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Gibson and Wu 2013}
+\framesubtitle{Processing {C}hinese relative clauses in context}
+
+Residuals are severely non-normal:
+
+<<echo=FALSE,fig.height=4>>=
+library(car)
+qqPlot(residuals(m0))
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Gibson and Wu 2013}
+\framesubtitle{Processing {C}hinese relative clauses in context}
+
+With a log transform of reading time (to reduce influence of extreme values; see Box and Cox 1964), we see no evidence for an effect (inconclusive result):
+
+<<>>=
+m1<-lmer(log(rt)~type+(1+type|subj)+(1|item),headnoun)
+summary(m1)$coefficients
+@
+
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}[fragile]\frametitle{Summary of LMMs}
+\framesubtitle{Varying intercepts model}
+
+The model for a categorical predictor is:
+
+\begin{equation}
+Y_{ijk} = \beta_j + b_{i}+\epsilon_{ijk}
+\end{equation}
+
+\noindent
+$i=1,\dots,10$ is subject id, $j=1,2$ is the factor level, $k$ is the number of replicates (here 1).
+$b_i \sim N(0,\sigma_b^2), \epsilon_{ijk}\sim N(0,\sigma^2)$.
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Summary of LMMs}
+\framesubtitle{Varying intercepts model}
+
+For a continuous predictor:
+
+\begin{equation}
+Y_{ijk} = \beta_0 + \beta_1 t_{ijk} + b_{ij} +\epsilon_{ijk}
+\end{equation}
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Summary of LMMs}
+\framesubtitle{Varying intercepts and varying slopes model}
+
+
+The model for a categorical predictor is:
+
+\begin{equation}
+Y_{ij} = \beta_1+b_{1i}+(\beta_2+b_{2i})x_{ij}+\epsilon_{ij} \quad i=1,...,M, j=1,...,n_i
+\end{equation}
+
+with $b_{1i}\sim N(0,\sigma_1^2), b_{2i}\sim N(0,\sigma_2^2)$, and $\epsilon_{ij}\sim N(0,\sigma^2)$.
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Summary of LMMs}
+\framesubtitle{Varying intercepts and varying slopes model}
+
+Another way to write such models is:
+
+\begin{equation}
+Y_{ijk} = \beta_j + b_{ij}+\epsilon_{ijk}
+\end{equation}
+
+\noindent
+$b_{ij}\sim N(0,\sigma_b)$. The variance $\sigma_b$ must be a $2\times 2$ matrix:
+
+\begin{equation}
+\begin{pmatrix}
+\sigma_1^2 & \rho \sigma_1 \sigma_2\\
+\rho \sigma_1 \sigma_2 & \sigma_2^2\\
+\end{pmatrix}
+\end{equation}
+
+See my linear modeling notes for much more.
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Summary of LMMs}
+\framesubtitle{Further reading}
+
+\begin{enumerate}
+\item
+The authoritative and classic textbook on LMMs is:
+
+Gelman and Hill 2007, Data analysis using regression and multilevel/hierarchical models.
+\item
+Please also read: Barr et al 2013,
+Random effects structure in mixed-effects models: {K}eep it maximal, Journal of Memory and Language.
+\item
+Also read a response to Barr et al: 
+Bates et al, Parsimonious mixed models, ArXiv preprint
+http://arxiv.org/abs/1506.04967.
+\end{enumerate}
+
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Learning Statistics}
+\framesubtitle{Further reading}
+
+A comprehensive education in statistical theory and applications can be obtained by doing
+
+\begin{enumerate}
+\item The one-year graduate certificate in Statistics offered by distance education at Sheffield's School of Mathematics and Statistics.
+\item The two- or three-year MSc in Statistics also offered by Sheffield.
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Learning Statistics}
+\framesubtitle{Further reading}
+
+For those willing to work on their own:
+
+\begin{enumerate}
+\item
+A comprehensive introduction using calculus: Kerns, 2010. Introduction to Probability and Statistics Using R
+\item 
+Miller and Miller. 2004. John E. Freund's Mathematical Statistics with Applications.
+\end{enumerate}
+
+\end{frame}
+
+\section{An advertisement for Potsdam}
+
+\begin{frame}[fragile]\frametitle{MSc Cognitive Systems}
+\framesubtitle{Taught in English}
+
+A unique combination of three research groups covering, language, computation, and cognition:
+
+\begin{enumerate}
+\item Computational Linguistics (Alexander Koller, Manfred Stede)
+\item Computer Science (Tobias Scheffler, Torsten Schaub)
+\item Cognitive Modeling (Shravan Vasishth)
+\end{enumerate}
+
+\end{frame}
+\end{document}
+
