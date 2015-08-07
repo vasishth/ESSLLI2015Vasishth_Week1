@@ -97,7 +97,6 @@ Now we are ready to look at an important type of linear model: linear mixed mode
 
 Returning to our noise and deg data, one important point we've neglected is that different subjects have different effects of noise and deg. In the linear models we fit we were ignoring this.
 
-
 <<>>=
 noisedeg<-read.table("data/noisedeg.txt",
                      header=TRUE)
@@ -343,8 +342,8 @@ We can visualize these different intercepts for each subject as shown below.
 \begin{frame}[fragile]\frametitle{Linear mixed models}
 
 <<echo=FALSE,fig.height=4>>=
-(a<-fixef(m0.lmer)[1])
-(newa<-a+ranef(m0.lmer)$subj)
+a<-fixef(m0.lmer)[1]
+newa<-a+ranef(m0.lmer)$subj
 
 ab<-data.frame(newa=newa,b=fixef(m0.lmer)[2])
 
